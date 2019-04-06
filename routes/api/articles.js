@@ -6,13 +6,13 @@ router.get('/test', (req, res) => {
     res.json({msg: 'home'})
 })
 
-// ------------articleData---------------
-router.get('/articleData',function(req, res) {
+// articleData
+router.get('/articleData', (req, res) => {
     let type = req.query.type
     let page_index = req.query.page_index
     let page_size = req.query.page_size
     let search = req.query.search
-
+    
     if( type == undefined || type == null) {
         res.send({ code: 0, msg: "获取数据失败", data: null});
         return
@@ -43,15 +43,20 @@ router.get('/articleData',function(req, res) {
     page_index = parseInt(req.query.page_index)
     page_size = parseInt(req.query.page_size)
 
+    // console.log('type : ' + type)
+    // console.log('page_index : ' + page_index)
+    // console.log('page_size : ' + page_size)
+    // console.log('search : ' + search)
+    
     // 查询总数sql
-    let countSql = 'SELECT count(id) FROM article WHERE type = ? AND title like ?'
+    let countSql = ''
 
     // 查询数据sql
-    let dataSql = `SELECT a.content,a.img,a.type,a.description,a.id,a.size,a.releaseTime,a.title,u.nickname as nickname FROM article a LEFT JOIN users u ON a.issuer = u.id WHERE a.type = ? AND a.title like ? ORDER BY a.releaseTime desc limit ?,?`
+    let dataSql = ''
 
     // 判断是否 type 为last 最新
     if( type == 'last') {
-        countSql = 'SELECT count(id) FROM article WHERE title like ?'
+        countSql = 'SELECT count(id) FROM article WHERE title like ? ORDER BY releaseTime'
         dataSql = `SELECT a.content,a.img,a.type,a.description,a.id,a.size,a.releaseTime,a.title,u.nickname as nickname FROM article a LEFT JOIN users u ON a.issuer = u.id WHERE a.title like ? ORDER BY a.releaseTime desc limit ?,?`
         // 先查询总条数 
         getArtcileCount(countSql, search, search)
@@ -59,7 +64,7 @@ router.get('/articleData',function(req, res) {
             count = count['count(id)']
             // 总条数为0 则return
             if( count == 0) {
-                res.send({ code: 0, msg: "查询数据结果为空", data: null});
+                res.send({ code: 1, msg: "查询数据结果为空", data: null, totalCount: 0});
                 return
             }
             getArtcileData(dataSql, search, (page_index-1)*page_size, page_size)
@@ -67,20 +72,26 @@ router.get('/articleData',function(req, res) {
                 // console.log(data.length)
                 // data.length = 0 查询结果为空
                 if( data.length == 0 ) {
-                    res.send({ code: 0, msg: "查询数据结果为空", data: null});
+                    res.send({ code: 1, msg: "查询数据结果为空", data: null, totalCount: 0});
                 } else {
                     res.send({ code: 1, msg: "获取数据成功", data: data, totalCount: count})
                 }
             })
         })
     } else {
+        countSql = `SELECT count(id) as count FROM article WHERE type = ? AND title like ?`
+
+        // 查询数据sql
+        dataSql = `SELECT a.content,a.img,a.type,a.description,a.id,a.size,a.releaseTime,a.title,u.nickname as nickname FROM article a LEFT JOIN users u ON a.issuer = u.id WHERE a.type = ? AND a.title like ? ORDER BY a.releaseTime desc limit ?,?`
+
         // 先查询总条数 
-        getArtcileCount(countSql, search)
+        getArtcileCount(countSql, type, search)
         .then(count => {
-            count = count['count(id)']
+            // console.log(count)
+            count = count.count
             // 总条数为0 则return
             if( count == 0) {
-                res.send({ code: 0, msg: "查询数据结果为空", data: null});
+                res.send({ code: 1, msg: "查询数据结果为空", data: null, totalCount: 0});
                 return
             }
             
@@ -89,7 +100,7 @@ router.get('/articleData',function(req, res) {
                 // console.log(data.length)
                 // data.length = 0 查询结果为空
                 if( data.length == 0 ) {
-                    res.send({ code: 0, msg: "查询数据结果为空", data: null});
+                    res.send({ code: 1, msg: "查询数据结果为空", data: null, totalCount: 0});
                 } else {
                     res.send({ code: 1, msg: "获取数据成功", data: data, totalCount: count})
                 }
@@ -99,9 +110,9 @@ router.get('/articleData',function(req, res) {
     
 
     // 获取总数 arg1 > sql arg2 > type
-    function getArtcileCount(url, type, search) {
+    function getArtcileCount(sql, type, search) {
         return new Promise((resolve, reject) => {
-            connection.query(url,[type, search], (err, result) => {
+            connection.query(sql,[type, search], (err, result) => {
                 if(err) {
                     res.send({ code: 0, msg: "获取数据失败", data: null});
                     console.log(err)
@@ -130,6 +141,62 @@ router.get('/articleData',function(req, res) {
     
     
 })
-  
+
+// Aside Data Swiepr
+router.post('/swiperData', (req, res) => {
+    let sql = 'SELECT * FROM images WHERE type = "ad" ORDER BY createTime DESC'
+    connection.query(sql, (err, result) => {
+        if(err) {
+            console.log(err)
+            res.json({ code: 0, msg: '服务器异常，获取右侧轮播图图片失败', data: null})
+            return
+        }
+        res.json({ code: 1, msg: '已获取右侧轮播图图片数据', data: result})
+    })
+})
+// Aside Data Rank
+router.post('/getRank', (req, res) => {
+
+    const lookSql = 'SELECT * FROM article ORDER BY look DESC limit 0,6'
+    const lastSql = 'SELECT * FROM article ORDER BY releaseTime DESC limit 0,6'
+    const likeSql = 'SELECT * FROM article ORDER BY favorite DESC limit 0,6'
+    const downloadSql = 'SELECT * FROM article ORDER BY look DESC limit 0,6'
+
+    let sideData = {}
+
+    query(lookSql)
+        .then(lookRank => {
+            sideData.lookRank = lookRank
+            return query(lastSql)
+        })
+        .then(lastRank => {
+            sideData.lastRank = lastRank
+            return query(likeSql)
+        })
+        .then(likeRank => {
+            sideData.likeRank = likeRank
+            return query(downloadSql)
+        })
+        .then(downloadRank => {
+            sideData.downloadRank = downloadRank
+            // console.log(sideData)
+            res.json({code:1,msg:"已获取右侧数据",data:sideData})
+            return
+        })
+        .catch(err=>res.json({code:0,msg:"服务器异常，获取右侧数据失败",data:null}))
+
+    function query(sql) {
+        return new Promise((resolve,reject) => {
+            connection.query(sql, (err, result) => {
+                if(err) {
+                    console.log(err)
+                    reject(err)
+                    return
+                }
+                resolve(result)
+            })
+        })
+    }
+})
 
 module.exports = router

@@ -1,6 +1,6 @@
 const keys = {
     
-    secretOrKey: 'secret'
+    secretOrKey: '1788-music-com-xiaolong'
 }
 
 module.exports = keys

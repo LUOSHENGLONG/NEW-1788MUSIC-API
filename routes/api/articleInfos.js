@@ -10,7 +10,6 @@ router.get('/test', (req, res) => {
 // 根据id获取文章详情数据
 router.post('/', (req, res) => {
     const id = req.body.id
-    console.log(id)
 
     // 查询文章sql
     let dataSql = 'SELECT a.*,u.nickname as nickname FROM article a LEFT JOIN users u ON a.issuer = u.id WHERE a.id = ?'
@@ -30,7 +29,6 @@ router.post('/', (req, res) => {
             updateLook(lookSql, id)
         })
         .then( isUpdate => {
-            console.log(111)
         })
         .catch(err => res.send({ code: 0, msg: "获取数据失败", data: null}))
     
@@ -41,7 +39,6 @@ router.post('/', (req, res) => {
             connection.query(sql,[id],(err, result) => {
                 if(err) {
                     res.send({ code: 0, msg: "获取数据失败", data: null});
-                    console.log(err)
                     reject(err)
                     return
                 }
@@ -56,7 +53,6 @@ router.post('/', (req, res) => {
             connection.query(sql,[id],(err, result) => {
                 if(err) {
                     res.send({ code: 0, msg: "获取数据失败", data: null});
-                    console.log(err)
                     reject(err)
                     return
                 }

@@ -2,6 +2,7 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const path = require('path');
 const app = express();
+
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
 
@@ -38,11 +39,21 @@ const home = require('./routes/api/home.js')
 const users = require('./routes/api/users.js')
 const articles = require('./routes/api/articles.js')
 const articleInfos = require('./routes/api/articleInfos.js')
+const comments = require('./routes/api/comments.js')
+const avatar = require('./routes/api/avatar.js')
+const contribution = require('./routes/api/contribution.js')
+const protect = require('./routes/api/protect.js')
+const code = require('./routes/api/code.js')
 
 app.use('/api/home', home)
 app.use('/api/articles', articles)
 app.use('/api/articleInfos', articleInfos)
 app.use('/api/users', users)
+app.use('/api/comments', comments)
+app.use('/api/avatar', avatar)
+app.use('/api/contribution', contribution)
+app.use('/api/protect', protect)
+app.use('/api/code', code)
 
 app.listen(3006, () => {
     console.log('Server running at 3006 port')
